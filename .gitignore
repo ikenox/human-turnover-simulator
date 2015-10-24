@@ -1,2 +1,5 @@
 graph/*
+*.pyc
+*.ipynb
+
 !.gitkeep
