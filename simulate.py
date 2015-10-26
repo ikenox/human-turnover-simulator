@@ -2,7 +2,7 @@ from datetime import datetime
 from math import log10
 import random
 
-from scipy import stats
+from scipy.stats import skew,gaussian_kde
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -29,41 +29,15 @@ class TurnoverModel:
         def set(self, value):
             self.value = value
 
-    def __init__(self, step, p, delta_k, stage, gen_walking_chart=False):
-        self.step = step
-        self.p = p
-        self.delta_k = delta_k
-        self.stage = stage
-        self.gen_walking_chart = gen_walking_chart
+    def __simulate(self):
 
-        self.log_turnover_intervals = self.CalcedAttr(self.calc_log_results)
-        self.log_turnover_angles = self.CalcedAttr(self.calc_log_results)
-        self.fn_series = self.CalcedAttr(self.calc_fluctuations)
-        self.alpha_series = self.CalcedAttr(self.calc_fluctuations)
-        self.alpha_s = self.CalcedAttr(self.calc_fluctuations)
-        self.alpha_l = self.CalcedAttr(self.calc_fluctuations)
-
-        """
-        Simulate
-        """
         # initialize
         steps = np.arange(0, self.step - 1)
         k = 0
         rx = rand_r()
         ry = rand_r()
         before_state = 0
-
-        self.turnover_times = []
-        self.turnover_angles = []
-        self.turnover_intervals = []
-
-        if self.gen_walking_chart:
-            rx_history = []
-            rxw_history = []
-            ry_history = []
-            k_history = []
-            states = []
-            random_choices = []
+        self.initialize_records()
 
         for i in steps:
             """
@@ -73,22 +47,23 @@ class TurnoverModel:
             rand = rand_p()
             w = np.exp(-k)
             rxw = pow(rx, w)
-            if (p >= rand):
+            if (self.p >= rand):
                 if rxw > ry:
                     state = 0
                 else:
                     state = 1
             else:
-                if self.gen_walking_chart:
-                    random_choices.append(i)
+                if self.record_step_chart:
+                    self.random_choices.append(i)
                 state = random.getrandbits(1)
 
-            if self.gen_walking_chart:
-                states.append(state)
-                rx_history.append(rx)
-                rxw_history.append(rxw)
-                ry_history.append(ry)
-                k_history.append(k)
+            if self.record_step_chart:
+                self.steps = steps
+                self.states.append(state)
+                self.rx_history.append(rx)
+                self.rxw_history.append(rxw)
+                self.ry_history.append(ry)
+                self.k_history.append(k)
 
             if state:  # state=y
                 ry = rand_r()
@@ -118,44 +93,46 @@ class TurnoverModel:
             self.turnover_intervals.append(interval)
             self.turnover_times.append(i - 1)
 
-        if self.gen_walking_chart:
-            plt.figure(figsize=(20, 12))
+    def initialize_records(self):
 
-            plt.subplot(511)
-            plt.title(r"State")
-            plt.ylim(-0.15, 1.15)
-            plt.step(steps, states, color="#0E7AC4")
+        self.turnover_times = []
+        self.turnover_angles = []
+        self.turnover_intervals = []
 
-            plt.subplot(512)
-            plt.title(r"$R_x^W$")
-            plt.ylim(-0.05, 1.05)
-            plt.step(steps, rxw_history, color="#0E7AC4")
+        self.calced_log_turnover_intervals = self.CalcedAttr(self.__calc_log_results)
+        self.calced_log_turnover_angles = self.CalcedAttr(self.__calc_log_results)
+        self.calced_fn_series = self.CalcedAttr(self.__calc_fluctuations)
+        self.calced_alpha_series = self.CalcedAttr(self.__calc_fluctuations)
+        self.calced_alpha_s = self.CalcedAttr(self.__calc_fluctuations)
+        self.calced_alpha_l = self.CalcedAttr(self.__calc_fluctuations)
+        self.calced_skew = self.CalcedAttr(self.__calc_skew)
 
-            plt.subplot(513)
-            plt.title(r"$R_y$")
-            plt.ylim(-0.05, 1.05)
-            plt.step(steps, ry_history, color="#0E7AC4")
+        if self.record_step_chart:
+            self.rx_history = []
+            self.rxw_history = []
+            self.ry_history = []
+            self.k_history = []
+            self.states = []
+            self.random_choices = []
+            self.steps = None
 
-            plt.subplot(514)
-            plt.title(r"$K$")
-            plt_line(plt, random_choices, color='green')
-            plt.step(steps, k_history, color="#0E7AC4")
+    def __init__(self, step, p, delta_k, stage, record_step_chart=False):
+        self.step = step
+        self.p = p
+        self.delta_k = delta_k
+        self.stage = stage
+        self.record_step_chart = record_step_chart
 
-            plt.subplot(515)
-            plt.title(r"$Turnover angle$")
-            plt_line(plt, self.turnover_times)
-            plt.scatter(self.turnover_times, self.turnover_angles, color="#0E7AC4", s=3)
+        self.initialize_records()
 
-            plt.tight_layout()
-            save_and_close_plt(plt, 'walking')
+        self.__simulate()
 
-    def calc_fluctuations(self):
-
+    def __calc_fluctuations(self):
         """
         Calculating scaling exponent of F(n), alpha(n), alpha_s and alpha_l
         """
 
-        log_xsteps = np.linspace(0.1, 4.5, 15)
+        log_xsteps = np.linspace(0.5, 4.5, 15)
         line_xsteps = [int(pow(10, x)) for x in log_xsteps]
         fn_list = []
 
@@ -215,47 +192,50 @@ class TurnoverModel:
         alpha_s = np.average([al for i, al in enumerate(alpha_series[1]) if log10(alpha_series[0][i]) <= 2])
         alpha_l = np.average([al for i, al in enumerate(alpha_series[1]) if log10(alpha_series[0][i]) >= 2])
 
-        self.fn_series.set(fn_series)
-        self.alpha_series.set(alpha_series)
-        self.alpha_l.set(alpha_l)
-        self.alpha_s.set(alpha_s)
+        self.calced_fn_series.set(fn_series)
+        self.calced_alpha_series.set(alpha_series)
+        self.calced_alpha_l.set(alpha_l)
+        self.calced_alpha_s.set(alpha_s)
 
         return fn_series, alpha_series, alpha_s, alpha_l
 
-    def calc_log_results(self):
-        self.log_turnover_intervals.set([log10(i) for i in self.turnover_intervals])
-        self.log_turnover_angles.set([log10(i) for i in self.turnover_angles])
+    def __calc_log_results(self):
+        self.calced_log_turnover_intervals.set([log10(i) for i in self.turnover_intervals])
+        self.calced_log_turnover_angles.set([log10(i) for i in self.turnover_angles])
+
+    def __calc_skew(self):
+        self.calced_skew.set(skew([log10(i) for i in self.turnover_intervals]))
 
     def save_interval_angle_dist(self):
         """
-        2-dimention probability distribution P(tau,a)
+        Plot 2D probability distribution P(tau,a)
         """
 
-        xmin = min(self.log_turnover_intervals)
-        xmax = max(self.log_turnover_intervals)
-        ymin = min(self.log_turnover_angles)
-        ymax = max(self.log_turnover_angles)
+        xmin = min(self.calced_log_turnover_intervals.get())
+        xmax = max(self.calced_log_turnover_intervals.get())
+        ymin = min(self.calced_log_turnover_angles.get())
+        ymax = max(self.calced_log_turnover_angles.get())
 
         plt.figure()
         xx = np.linspace(xmin - 1, xmax + 1, 32)
         yy = np.linspace(ymin - 1, ymax + 1, 32)
         X, Y = np.meshgrid(xx, yy)
         positions = np.vstack([X.ravel(), Y.ravel()])
-        values = np.vstack([self.log_turnover_intervals, self.log_turnover_angles])
-        kernel = stats.gaussian_kde(values)
+        values = np.vstack([self.calced_log_turnover_intervals.get(), self.calced_log_turnover_angles.get()])
+        kernel = gaussian_kde(values)
         Z = np.reshape(kernel(positions), X.shape)
         plt.imshow(np.rot90(Z.T), cmap=plt.cm.gist_earth_r, extent=[xmin - 1, xmax + 1, ymin - 1, ymax + 1])
 
-        plt.plot(self.log_turnover_intervals, self.log_turnover_angles, 'k.', markersize=5, c='#FF0000')
+        plt.plot(self.calced_log_turnover_intervals.get(), self.calced_log_turnover_angles.get(), 'k.', markersize=5, c='#FF0000')
         save_and_close_plt(plt, 'interval_angle_dist')
 
     def save_interval_ccdf(self):
         """
-        Complementary cumulative distribution function P(x>=tau)
+        Plot complementary cumulative distribution function P(x>=tau)
         """
         plt.figure(figsize=(3, 4))
 
-        slis = sorted(self.log_turnover_intervals)
+        slis = sorted(self.calced_log_turnover_intervals.get())
         l = len(slis)
         i = 0
         y = []
@@ -268,19 +248,52 @@ class TurnoverModel:
 
     def save_fluctuation(self):
         """
-        F(n) and alpha(n)
+        Plot F(n) and alpha(n)
         """
         plt.figure(figsize=(3, 4))
 
         plt.xscale('log')
         plt.yscale('log')
         plt.ylim(0.005, 100)
-        plt.scatter(self.fn_series[0], self.fn_series[1], s=100)
+        plt.scatter(self.calced_fn_series.get()[0], self.calced_fn_series.get()[1], s=100)
         ax = plt.twinx()
         ax.set_ylim(0, 1)
-        ax.scatter(self.alpha_series[0], self.alpha_series[1], s=100)
+        ax.scatter(self.calced_alpha_series.get()[0], self.calced_alpha_series.get()[1], s=100)
         save_and_close_plt(plt, 'fn_and_alpha')
 
+    def save_step_chart(self):
+        if self.record_step_chart:
+            plt.figure(figsize=(20, 12))
+
+            plt.subplot(511)
+            plt.title(r"State")
+            plt.ylim(-0.15, 1.15)
+            plt.step(self.steps, self.states, color="#0E7AC4")
+
+            plt.subplot(512)
+            plt.title(r"$R_x^W$")
+            plt.ylim(-0.05, 1.05)
+            plt.step(self.steps, self.rxw_history, color="#0E7AC4")
+
+            plt.subplot(513)
+            plt.title(r"$R_y$")
+            plt.ylim(-0.05, 1.05)
+            plt.step(self.steps, self.ry_history, color="#0E7AC4")
+
+            plt.subplot(514)
+            plt.title(r"$K$")
+            plt_line(plt, self.random_choices, color='green')
+            plt.step(self.steps, self.k_history, color="#0E7AC4")
+
+            plt.subplot(515)
+            plt.title(r"$Turnover angle$")
+            plt_line(plt, self.turnover_times)
+            plt.scatter(self.turnover_times, self.turnover_angles, color="#0E7AC4", s=3)
+
+            plt.tight_layout()
+            save_and_close_plt(plt, 'walking')
+        else:
+            raise Exception('Walking chart is not recorded.')
 
 def plt_line(plt, x_series, color='red'):
     for t in x_series:
