@@ -1,24 +1,40 @@
 from math import log10
 from scipy.stats import skew
-from simulate import simulate_turnover, save_fluctuation, save_interval_angle_dist, save_interval_ccdf, calc_fluctuations
+from simulate import TurnoverModel
+import argparse
 
 
 def main():
 
-    step = 300000
+    parser = argparse.ArgumentParser(description='Simulate and plot graphs of human turnover steps.')
+    parser.add_argument('step', type=int,
+                       help='an integer for the accumulator')
+    parser.add_argument('p', type=float,
+                       help='an integer for the accumulator')
+    parser.add_argument('K', type=float,
+                       help='an integer for the accumulator')
+    parser.add_argument('stage', type=str,
+                       help='wake or sleep')
+    parser.add_argument('--stepchart', default=False, action="store_true",
+                        help='if record and plot step chart')
 
-    turnover_times, turnover_intervals, turnover_angles = simulate_turnover(step, 0.9999, 0.572, 'wake',
-                                                                            gen_walking_chart=False)
-    log_turnover_intervals = [log10(i) for i in turnover_intervals]
-    log_turnover_angles = [log10(i) for i in turnover_angles]
+    args = parser.parse_args()
 
-    save_interval_angle_dist(log_turnover_intervals, log_turnover_angles)
-    save_interval_ccdf(log_turnover_intervals)
+    sim = TurnoverModel(args.step, args.p, args.K, args.stage, record_step_chart=args.stepchart)
+    sim.save_fluctuation()
+    sim.save_interval_angle_dist()
+    sim.save_interval_ccdf()
+    if args.stepchart:
+        sim.save_step_chart()
 
-    fn_series, alpha_series, alpha_s, alpha_l = calc_fluctuations(turnover_times, turnover_intervals, step)
-    save_fluctuation(fn_series, alpha_series)
-
-    print 'skew:',skew([log10(i) for i in turnover_intervals])
+    print '===== turnover intervals ====='
+    print sim.turnover_intervals
+    print '===== turnover times,intervals,angles ====='
+    print zip(sim.turnover_times,sim.turnover_intervals,sim.turnover_angles)
+    print '===== alpha s,l ====='
+    print sim.calced_alpha_s.get(), sim.calced_alpha_l.get()
+    print '===== skew of log10(tau)====='
+    print skew([log10(i) for i in sim.turnover_intervals])
 
 
 if __name__ == '__main__':
