@@ -9,18 +9,39 @@ import matplotlib.pyplot as plt
 
 class TurnoverModel:
 
+    class CalcedAttr:
+        """
+        An attribute which can be calculated from attribute.
+        CalcedAttr reduces redundant calculation
+        """
+
+        def __init__(self, calc_func):
+            self.value = None
+            self.calc_func = calc_func
+
+        def get(self):
+            if self.value:
+                return self.value
+            else:
+                self.calc_func()
+                return self.value
+
+        def set(self, value):
+            self.value = value
+
     def __init__(self, step, p, delta_k, stage, gen_walking_chart=False):
         self.step = step
         self.p = p
         self.delta_k = delta_k
         self.stage = stage
         self.gen_walking_chart = gen_walking_chart
-        self.log_turnover_intervals = None
-        self.log_turnover_angles = None
-        self.fn_series = None
-        self.alpha_series = None
-        self.alpha_s = None
-        self.alpha_l = None
+
+        self.log_turnover_intervals = self.CalcedAttr(self.calc_log_results)
+        self.log_turnover_angles = self.CalcedAttr(self.calc_log_results)
+        self.fn_series = self.CalcedAttr(self.calc_fluctuations)
+        self.alpha_series = self.CalcedAttr(self.calc_fluctuations)
+        self.alpha_s = self.CalcedAttr(self.calc_fluctuations)
+        self.alpha_l = self.CalcedAttr(self.calc_fluctuations)
 
         """
         Simulate
@@ -28,8 +49,8 @@ class TurnoverModel:
         # initialize
         steps = np.arange(0, self.step - 1)
         k = 0
-        rx = rand_R()
-        ry = rand_R()
+        rx = rand_r()
+        ry = rand_r()
         before_state = 0
 
         self.turnover_times = []
@@ -70,10 +91,10 @@ class TurnoverModel:
                 k_history.append(k)
 
             if state:  # state=y
-                ry = rand_R()
+                ry = rand_r()
                 k = 0
             else:  # state=x
-                rx = rand_R()
+                rx = rand_r()
                 k += self.delta_k
 
             if before_state and not state:
@@ -181,24 +202,29 @@ class TurnoverModel:
 
             fn_list.append(np.sqrt(ave_wn2 - ave_wn ** 2))
 
-        self.fn_series = (line_xsteps, fn_list)
+        fn_series = (line_xsteps, fn_list)
 
         log_fn_list = [log10(fn) for fn in fn_list]
 
-        self.alpha_series = ([], [])
+        alpha_series = ([], [])
         for i in range(len(fn_list[:-1])):
             log_delx = (log_xsteps[i + 1] - log_xsteps[i])
-            self.alpha_series[0].append(np.power(10, log_xsteps[i] + log_delx / 2))
-            self.alpha_series[1].append((log_fn_list[i + 1] - log_fn_list[i]) / log_delx)
+            alpha_series[0].append(np.power(10, log_xsteps[i] + log_delx / 2))
+            alpha_series[1].append((log_fn_list[i + 1] - log_fn_list[i]) / log_delx)
 
-        self.alpha_s = np.average([al for i, al in enumerate(self.alpha_series[1]) if log10(self.alpha_series[0][i]) <= 2])
-        self.alpha_l = np.average([al for i, al in enumerate(self.alpha_series[1]) if log10(self.alpha_series[0][i]) >= 2])
+        alpha_s = np.average([al for i, al in enumerate(alpha_series[1]) if log10(alpha_series[0][i]) <= 2])
+        alpha_l = np.average([al for i, al in enumerate(alpha_series[1]) if log10(alpha_series[0][i]) >= 2])
 
-        return self.fn_series, self.alpha_series, self.alpha_s, self.alpha_l
+        self.fn_series.set(fn_series)
+        self.alpha_series.set(alpha_series)
+        self.alpha_l.set(alpha_l)
+        self.alpha_s.set(alpha_s)
+
+        return fn_series, alpha_series, alpha_s, alpha_l
 
     def calc_log_results(self):
-        self.log_turnover_intervals = [log10(i) for i in self.turnover_intervals]
-        self.log_turnover_angles = [log10(i) for i in self.turnover_angles]
+        self.log_turnover_intervals.set([log10(i) for i in self.turnover_intervals])
+        self.log_turnover_angles.set([log10(i) for i in self.turnover_angles])
 
     def save_interval_angle_dist(self):
         """
@@ -267,7 +293,7 @@ def save_and_close_plt(plt, filename):
     plt.clf()
 
 
-def rand_R():
+def rand_r():
     r = np.random.random()
     return r
 
