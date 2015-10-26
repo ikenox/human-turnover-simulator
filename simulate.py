@@ -32,14 +32,21 @@ class TurnoverModel:
     def __simulate(self):
 
         # initialize
-        steps = np.arange(0, self.step - 1)
+        self.steps = np.arange(0, self.step - 1)
         k = 0
+
+        if self.stage == 'wake':
+            y_start = -1
+            before_state = 1
+        else:
+            x_start = -1
+            before_state = 0
+
         rx = rand_r()
         ry = rand_r()
-        before_state = 0
         self.initialize_records()
 
-        for i in steps:
+        for i in self.steps:
             """
             state 0:x 1:y
             """
@@ -58,12 +65,30 @@ class TurnoverModel:
                 state = random.getrandbits(1)
 
             if self.record_step_chart:
-                self.steps = steps
                 self.states.append(state)
                 self.rx_history.append(rx)
                 self.rxw_history.append(rxw)
                 self.ry_history.append(ry)
                 self.k_history.append(k)
+
+            if before_state ^ state:
+                if self.stage == 'sleep':
+                    if before_state:
+                        x_start = i
+                        self.turnover_angles.append(rx * (i-y_start))
+                        self.turnover_intervals.append(interval)
+                    else:
+                        y_start = i
+                        interval = i - x_start
+
+                if self.stage == 'wake':
+                    if before_state:
+                        x_start = i
+                        interval = i - y_start
+                    else:
+                        y_start = i
+                        self.turnover_intervals.append(interval)
+                        self.turnover_angles.append(ry * (i-x_start))
 
             if state:  # state=y
                 ry = rand_r()
@@ -72,26 +97,15 @@ class TurnoverModel:
                 rx = rand_r()
                 k += self.delta_k
 
-            if before_state and not state:
-                if len(self.turnover_times) > 0:
-                    interval = i - self.turnover_times[-1]
-                else:
-                    interval = i
-
-                self.turnover_angles.append(rx * (interval))
-                self.turnover_intervals.append(interval)
-                self.turnover_times.append(i - 1)
-
             before_state = state
 
-        if before_state:
-            if len(self.turnover_times) > 0:
-                interval = i - self.turnover_times[-1]
-            else:
-                interval = i
-            self.turnover_angles.append(rx * (interval))
-            self.turnover_intervals.append(interval)
-            self.turnover_times.append(i - 1)
+
+        interval_sum = 0
+        for interval in self.turnover_intervals:
+            interval_sum += interval
+            self.turnover_times.append(interval_sum)
+
+
 
     def initialize_records(self):
 
@@ -114,7 +128,6 @@ class TurnoverModel:
             self.k_history = []
             self.states = []
             self.random_choices = []
-            self.steps = None
 
     def __init__(self, step, p, delta_k, stage, record_step_chart=False):
         self.step = step
@@ -132,7 +145,7 @@ class TurnoverModel:
         Calculating scaling exponent of F(n), alpha(n), alpha_s and alpha_l
         """
 
-        log_xsteps = np.linspace(0.5, 4.5, 15)
+        log_xsteps = np.linspace(0.5, max(self.calced_log_turnover_intervals.get())-0.5, 15)
         line_xsteps = [int(pow(10, x)) for x in log_xsteps]
         fn_list = []
 
@@ -216,7 +229,6 @@ class TurnoverModel:
         ymin = min(self.calced_log_turnover_angles.get())
         ymax = max(self.calced_log_turnover_angles.get())
 
-        plt.figure()
         xx = np.linspace(xmin - 1, xmax + 1, 32)
         yy = np.linspace(ymin - 1, ymax + 1, 32)
         X, Y = np.meshgrid(xx, yy)

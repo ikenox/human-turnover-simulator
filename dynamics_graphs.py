@@ -26,8 +26,15 @@ def main():
     sim.save_interval_ccdf()
     if args.stepchart:
         sim.save_step_chart()
-    print 'alpha s,l:',sim.calced_alpha_s.get(), sim.calced_alpha_l.get()
-    print 'skew:',skew([log10(i) for i in sim.turnover_intervals])
+
+    print '===== turnover intervals ====='
+    print sim.turnover_intervals
+    print '===== turnover times,intervals,angles ====='
+    print zip(sim.turnover_times,sim.turnover_intervals,sim.turnover_angles)
+    print '===== alpha s,l ====='
+    print sim.calced_alpha_s.get(), sim.calced_alpha_l.get()
+    print '===== skew of log10(tau)====='
+    print skew([log10(i) for i in sim.turnover_intervals])
 
 
 if __name__ == '__main__':
