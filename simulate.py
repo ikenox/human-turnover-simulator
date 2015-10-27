@@ -5,6 +5,7 @@ import random
 from scipy.stats import skew,gaussian_kde
 import numpy as np
 import matplotlib.pyplot as plt
+from util import save_and_close_plt
 
 
 class TurnoverModel:
@@ -310,12 +311,6 @@ class TurnoverModel:
 def plt_line(plt, x_series, color='red'):
     for t in x_series:
         plt.axvline(x=t, color=color, linewidth=0.5)
-
-
-def save_and_close_plt(plt, filename):
-    str_date = datetime.now().strftime('%Y%m%d%H%M%S')
-    plt.savefig("graph/%s_%s.png" % (filename, str_date))
-    plt.clf()
 
 
 def rand_r():

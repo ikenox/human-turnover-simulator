@@ -1,7 +1,5 @@
-from math import log10
 import datetime
 
-from scipy.stats import skew
 import numpy as np
 from simulate import TurnoverModel
 import multiprocessing as mp
