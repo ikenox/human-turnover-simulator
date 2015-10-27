@@ -49,6 +49,7 @@ python dynamics_graphs.py 300000 0.9999 0.123 wake --stepchart
 
 ### Plot 3D scatter graph of simulations
 
-example```
+example
+```
 
 ```
