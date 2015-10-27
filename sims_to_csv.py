@@ -1,8 +1,9 @@
 import datetime
+import multiprocessing as mp
 
 import numpy as np
-from simulate import TurnoverModel
-import multiprocessing as mp
+
+from lib.simulate import TurnoverModel
 
 def main():
     proc = 10

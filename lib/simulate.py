@@ -1,11 +1,11 @@
-from datetime import datetime
 from math import log10
 import random
 
 from scipy.stats import skew,gaussian_kde
 import numpy as np
 import matplotlib.pyplot as plt
-from util import save_and_close_plt
+
+from lib.util import save_and_close_plt
 
 
 class TurnoverModel:

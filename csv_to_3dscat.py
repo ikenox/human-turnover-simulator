@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
+import argparse
+
 from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from scipy import genfromtxt
-import argparse
 import pandas as pd
-from pandas import DataFrame
-from util import save_and_close_plt
-from matplotlib.colors import hsv_to_rgb
+
+from lib.util import save_and_close_plt
+
 
 def main():
 

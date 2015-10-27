@@ -1,7 +1,9 @@
 from math import log10
-from scipy.stats import skew
-from simulate import TurnoverModel
 import argparse
+
+from scipy.stats import skew
+
+from lib.simulate import TurnoverModel
 
 
 def main():
