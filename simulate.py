@@ -225,19 +225,24 @@ class TurnoverModel:
         Plot 2D probability distribution P(tau,a)
         """
 
+        plt.figure(figsize=(3, 4))
+
         xmin = min(self.calced_log_turnover_intervals.get())
         xmax = max(self.calced_log_turnover_intervals.get())
         ymin = min(self.calced_log_turnover_angles.get())
         ymax = max(self.calced_log_turnover_angles.get())
 
-        xx = np.linspace(xmin - 1, xmax + 1, 32)
-        yy = np.linspace(ymin - 1, ymax + 1, 32)
+        xx = np.linspace(-1, 6, 32)
+        yy = np.linspace(-2, 3, 32)
         X, Y = np.meshgrid(xx, yy)
         positions = np.vstack([X.ravel(), Y.ravel()])
         values = np.vstack([self.calced_log_turnover_intervals.get(), self.calced_log_turnover_angles.get()])
         kernel = gaussian_kde(values)
         Z = np.reshape(kernel(positions), X.shape)
-        plt.imshow(np.rot90(Z.T), cmap=plt.cm.gist_earth_r, extent=[xmin - 1, xmax + 1, ymin - 1, ymax + 1])
+        plt.imshow(np.rot90(Z.T), cmap=plt.cm.gist_earth_r, extent=[-1, 6, -2, 3], aspect=2)
+
+        plt.xlabel(r'$\log_{10}(\tau)$')
+        plt.ylabel(r'$\log_{10}(A)$')
 
         plt.plot(self.calced_log_turnover_intervals.get(), self.calced_log_turnover_angles.get(), 'k.', markersize=5, c='#FF0000')
         save_and_close_plt(plt, 'interval_angle_dist')
@@ -248,6 +253,9 @@ class TurnoverModel:
         """
         plt.figure(figsize=(3, 4))
 
+        plt.xlabel(r'$\tau (s)$')
+        plt.ylabel(r'$P(x\geq\tau)$')
+
         slis = sorted(self.calced_log_turnover_intervals.get())
         l = len(slis)
         i = 0
@@ -256,7 +264,7 @@ class TurnoverModel:
             y.append(1.0 * (l - i) / l)
             i += 1
 
-        plt.scatter(slis, y, s=100)
+        plt.scatter(slis, y, s=100, c='white')
         save_and_close_plt(plt, 'interval_ccdf')
 
     def save_fluctuation(self):
@@ -268,10 +276,13 @@ class TurnoverModel:
         plt.xscale('log')
         plt.yscale('log')
         plt.ylim(0.005, 100)
-        plt.scatter(self.calced_fn_series.get()[0], self.calced_fn_series.get()[1], s=100)
+        plt.scatter(self.calced_fn_series.get()[0], self.calced_fn_series.get()[1], s=100, c='#999999')
+        plt.xlabel(r'$n$')
+        plt.ylabel(r'$F(n)$')
         ax = plt.twinx()
         ax.set_ylim(0, 1)
-        ax.scatter(self.calced_alpha_series.get()[0], self.calced_alpha_series.get()[1], s=100)
+        ax.set_ylabel(r'$\alpha(n)$')
+        ax.scatter(self.calced_alpha_series.get()[0], self.calced_alpha_series.get()[1], s=100, c='white')
         save_and_close_plt(plt, 'fn_and_alpha')
 
     def save_step_chart(self):
@@ -279,7 +290,7 @@ class TurnoverModel:
             plt.figure(figsize=(20, 12))
 
             plt.subplot(511)
-            plt.title(r"State")
+            plt.title(r"State (0:state$x$, 1:state$y$)")
             plt.ylim(-0.15, 1.15)
             plt.step(self.steps, self.states, color="#0E7AC4")
 
@@ -299,7 +310,7 @@ class TurnoverModel:
             plt.step(self.steps, self.k_history, color="#0E7AC4")
 
             plt.subplot(515)
-            plt.title(r"$Turnover angle$")
+            plt.title(r"Turnover angle $A$")
             plt_line(plt, self.turnover_times)
             plt.scatter(self.turnover_times, self.turnover_angles, color="#0E7AC4", s=3)
 
