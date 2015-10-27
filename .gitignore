@@ -1,4 +1,5 @@
 graph/*
+results/*
 *.pyc
 *.ipynb
 

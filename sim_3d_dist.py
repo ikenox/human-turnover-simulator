@@ -1,20 +1,44 @@
 from math import log10
+import datetime
+
 from scipy.stats import skew
-from simulate import simulate_turnover, save_fluctuation, save_interval_angle_dist, save_interval_ccdf, calc_fluctuations
+import numpy as np
+from simulate import TurnoverModel
 
 
 def main():
+    log_delta_k_steps = np.arange(-6, 0, 0.0606)
 
-    step = 100000
+    with open('results/sims_%s.csv' % datetime.datetime.now().strftime('%Y%m%d%H%M%S'), 'w') as f:
 
-    turnover_times, turnover_intervals, turnover_angles = simulate_turnover(step, 0.9999, 0.123, 'wake',
-                                                                            gen_walking_chart=False)
+        f.writelines(",".join(['delta_k','alpha_s','alpha_l','skew','\n']))
 
-    fn_series, alpha_series, alpha_s, alpha_l = calc_fluctuations(turnover_times, turnover_intervals, step)
+        for log_delta_k in log_delta_k_steps:
 
-    save_fluctuation(fn_series, alpha_series)
+            delta_k = pow(10, log_delta_k)
+            print 'delta_k:',delta_k
 
-    print 'skew:',skew([log10(i) for i in turnover_intervals])
+            for i in range(10):
+                sim = TurnoverModel(1000000, 0.9999, delta_k, 'wake')
+                alpha_s = sim.calced_alpha_s.get()
+                alpha_l = sim.calced_alpha_l.get()
+                skew = sim.calced_skew.get()
+
+                f.writelines(",".join([str(delta_k),str(alpha_s),str(alpha_l),str(skew),'\n']))
+
+        for log_delta_k in log_delta_k_steps:
+
+            delta_k = pow(10, log_delta_k)
+            print 'delta_k:',delta_k
+
+            for i in range(10):
+                sim = TurnoverModel(300000, 0.9999, delta_k, 'sleep')
+                alpha_s = sim.calced_alpha_s.get()
+                alpha_l = sim.calced_alpha_l.get()
+                skew = sim.calced_skew.get()
+
+                f.writelines(",".join([str(delta_k),str(alpha_s),str(alpha_l),str(skew),'\n']))
+
 
 
 if __name__ == '__main__':
