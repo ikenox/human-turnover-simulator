@@ -40,7 +40,7 @@ $ pip install -r requirements.txt
 
 **Commands**
 ```
-python dynamics_graphs.py 300000 0.9999 0.123 sleep --stepchart
+$ python dynamics_graphs.py 300000 0.9999 0.123 sleep --stepchart
 ```
 Graphs are saved in `graphs/`.
 
@@ -55,8 +55,8 @@ Graphs are saved in `graphs/`.
 **Commands**
 
 ```
-python sims_to_csv.py   // Do simulations and save results to csv file
-python csv_to_3dscat.py (csv filepath)
+$ python sims_to_csv.py   // Do simulations and save results to csv file
+$ python csv_to_3dscat.py (csv filepath)
 ```
 The graph are saved in `graphs/`.
 
